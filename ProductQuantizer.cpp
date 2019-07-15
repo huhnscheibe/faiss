@@ -310,7 +310,11 @@ void ProductQuantizer::train (int n, const float * x)
 
 void ProductQuantizer::compute_code (const float * x, uint8_t * code)  const
 {
+#ifdef _MSC_VER
+	float *distances = new float[ksub];
+#else
     float distances [ksub];
+#endif
     for (size_t m = 0; m < M; m++) {
         float mindis = 1e20;
         int idxm = -1;
@@ -327,7 +331,10 @@ void ProductQuantizer::compute_code (const float * x, uint8_t * code)  const
                 idxm = i;
             }
         }
-        switch (byte_per_idx) {
+#ifdef _MSC_VER
+		delete[] distances;
+#endif
+		switch (byte_per_idx) {
           case 1:  code[m] = (uint8_t) idxm;  break;
           case 2:  ((uint16_t *) code)[m] = (uint16_t) idxm;  break;
         }

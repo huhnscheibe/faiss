@@ -848,7 +848,11 @@ void MultiIndexQuantizer::search (idx_t n, const float *x, idx_t k,
 void MultiIndexQuantizer::reconstruct (idx_t key, float * recons) const
 {
     if (pq.byte_per_idx == 1) {
+#ifdef _MSC_VER
+		uint8_t *code = new uint8_t[pq.M];
+#else
         uint8_t code[pq.M];
+#endif
         long jj = key;
         for (int m = 0; m < pq.M; m++) {
             long n = jj % pq.ksub;
@@ -856,8 +860,15 @@ void MultiIndexQuantizer::reconstruct (idx_t key, float * recons) const
             code[m] = n;
         }
         pq.decode (code, recons);
-    } else if (pq.byte_per_idx == 2) {
+#ifdef _MSC_VER
+		delete[] code;
+#endif
+	} else if (pq.byte_per_idx == 2) {
+#ifdef _MSC_VER
+		uint16_t *code = new uint16_t[pq.M];
+#else
         uint16_t code[pq.M];
+#endif
         long jj = key;
         for (int m = 0; m < pq.M; m++) {
             long n = jj % pq.ksub;
@@ -865,6 +876,9 @@ void MultiIndexQuantizer::reconstruct (idx_t key, float * recons) const
             code[m] = n;
         }
         pq.decode ((uint8_t*)code, recons);
+#ifdef _MSC_VER
+		delete[] code;
+#endif
     } else FAISS_ASSERT(!"only 1 or 2 bytes per index supported");
 }
 

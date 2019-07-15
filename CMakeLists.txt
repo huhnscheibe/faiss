@@ -13,10 +13,22 @@ list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake/Modules)
 find_package(OpenMP REQUIRED)
 
 # openblas
-find_package(OpenBLAS REQUIRED)
-include_directories(${OpenBLAS_INCLUDE_DIR})
+find_package(BLAS REQUIRED)
+#include_directories(${OpenBLAS_INCLUDE_DIR})
+if (BLAS_FOUND)
+message(STATUS "Found BLAS: ${BLAS_LIBRARIES}")
+endif()
 
+find_package(LAPACK REQUIRED)
+if (LAPACK_FOUND)
+message(STATUS "Found LAPACK: ${LAPACK_LIBRARIES}")
+endif()
+
+if (UNIX)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -fPIC -m64 -Wall -g -O3  -msse4 -mpopcnt -fopenmp -Wno-sign-compare")
+else()
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /D NOMINMAX")
+endif()
 add_definitions(-DFINTEGER=int)
 
 # specify output bin_path and lib_path
@@ -30,7 +42,16 @@ file(GLOB faiss_cpu_cpp ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp)
 
 set(faiss_lib faiss)
 add_library(${faiss_lib} STATIC ${faiss_cpu_headers} ${faiss_cpu_cpp})
+if(UNIX)
 target_link_libraries(${faiss_lib} ${OpenMP_CXX_FLAGS} ${OpenBLAS_LIB})
+else()
+find_path(MMAN_DIR NAMES sys/mman.h PATH_SUFFIXES mman)
+find_library(MMAN_LIB NAMES mman)
+#find_library(OpenBLAS_LIB NAMES openblas)
+find_package(pthreads REQUIRED)
+target_include_directories(${faiss_lib} PRIVATE ${MMAN_DIR} ${PTHREADS_INCLUDE_DIR} ${CLAPACK_INCLUDE_DIR})
+target_link_libraries(${faiss_lib} ${OpenMP_CXX_FLAGS} ${PTHREADS_LIBRARY} ${MMAN_LIB} ${LAPACK_LIBRARIES})
+endif()
 
 # build gpu lib
 if(BUILD_WITH_GPU)

@@ -621,7 +621,8 @@ void IndexSplitVectors::search (
                     distances[j] += distances_i[j];
                 } else {
                     labels[j] = -1;
-                    distances[j] = 0.0 / 0.0;
+					float zero = 0.0;
+                    distances[j] = 0.0 / zero;
                 }
             }
         }

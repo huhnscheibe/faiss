@@ -366,7 +366,8 @@ void ParameterSpace::initialize (const Index * index)
             for (int i = 8; i < 20; i++) {
                 pr_max_codes.values.push_back (1 << i);
             }
-            pr_max_codes.values.push_back (1.0 / 0.0);
+			double zero = 0.0;
+            pr_max_codes.values.push_back (1.0 / zero);
         }
     }
     if (DC (IndexIVFPQR)) {
@@ -401,7 +402,11 @@ void ParameterSpace::set_index_parameters (Index *index, size_t cno) const
 void ParameterSpace::set_index_parameters (
      Index *index, const char *description_in) const
 {
+#ifdef _MSC_VER
+	char *description = new char[strlen(description_in) + 1];
+#else
     char description[strlen(description_in) + 1];
+#endif
     char *ptr;
     memcpy (description, description_in, strlen(description_in) + 1);
 
@@ -413,7 +418,9 @@ void ParameterSpace::set_index_parameters (
         FAISS_ASSERT (sscanf (tok, "%100[^=]=%lf", name, &val) == 2);
         set_index_parameter (index, name, val);
     }
-
+#ifdef _MSC_VER
+	delete[] description;
+#endif
 }
 
 void ParameterSpace::set_index_parameter (
@@ -628,7 +635,11 @@ Index *index_factory (int d, const char *description_in, MetricType metric)
     bool add_idmap = false;
     bool make_IndexRefineFlat = false;
 
+#ifdef _MSC_VER
+	char *description = new char[strlen(description_in) + 1];
+#else
     char description[strlen(description_in) + 1];
+#endif
     char *ptr;
     memcpy (description, description_in, strlen(description_in) + 1);
 
@@ -749,6 +760,9 @@ Index *index_factory (int d, const char *description_in, MetricType metric)
             index = index_1;
         }
     }
+#ifdef _MSC_VER
+	delete[] description;
+#endif
 
     if (add_idmap) {
         fprintf(stderr, "index_factory: WARNING: "

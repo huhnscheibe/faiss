@@ -8,7 +8,11 @@ foreach(source ${srcs})
 
     # target
     add_executable(${name} ${source})
+if(UNIX)
     target_link_libraries(${name} ${faiss_lib})
+else()
+    target_link_libraries(${name} ${faiss_lib} ${PTHREADS_LIBRARY})
+endif()
 
     # Install
     install(TARGETS ${name} DESTINATION bin)

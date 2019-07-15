@@ -37,6 +37,12 @@
    excludes most unsigned type */
 typedef int32_t hamdis_t;
 
+#ifdef _MSC_VER
+#  include <intrin.h>
+#  define __builtin_popcount __popcnt
+#  define __builtin_popcountl __popcnt64
+#endif
+
 namespace faiss {
 
 inline int popcount64(uint64_t x) {

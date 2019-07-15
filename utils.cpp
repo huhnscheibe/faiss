@@ -20,9 +20,14 @@
 #include <smmintrin.h>
 #include <mmintrin.h>
 
+#if defined(_WIN32)
+#include <sys/timeb.h>
+//#include "unistd.h"
+#else
 #include <sys/time.h>
-#include <sys/types.h>
 #include <unistd.h>
+#endif
+#include <sys/types.h>
 
 #include <omp.h>
 
@@ -38,7 +43,6 @@
 #ifndef FINTEGER
 #define FINTEGER long
 #endif
-
 
 extern "C" {
 
@@ -61,12 +65,45 @@ int sorgqr_(FINTEGER *m, FINTEGER *n, FINTEGER *k, float *a,
 
 }
 
-
 /**************************************************
  * Get some stats about the system
  **************************************************/
 
 namespace faiss {
+
+#ifdef WIN32
+#define WIN32_LEAN_AND_MEAN
+#include <Windows.h>
+#include <stdint.h> // portable: uint64_t   MSVC: __int64 
+
+	//#define FINTEGER integer
+	// MSVC defines this in winsock2.h!?
+	typedef struct timeval {
+		long tv_sec;
+		long tv_usec;
+	} timeval;
+
+	int gettimeofday(struct timeval * tp, struct timezone * tzp)
+	{
+		// Note: some broken versions only have 8 trailing zero's, the correct epoch has 9 trailing zero's
+		// This magic number is the number of 100 nanosecond intervals since January 1, 1601 (UTC)
+		// until 00:00:00 January 1, 1970 
+		static const uint64_t EPOCH = ((uint64_t)116444736000000000ULL);
+
+		SYSTEMTIME  system_time;
+		FILETIME    file_time;
+		uint64_t    time;
+
+		GetSystemTime(&system_time);
+		SystemTimeToFileTime(&system_time, &file_time);
+		time = ((uint64_t)file_time.dwLowDateTime);
+		time += ((uint64_t)file_time.dwHighDateTime) << 32;
+
+		tp->tv_sec = (long)((time - EPOCH) / 10000000L);
+		tp->tv_usec = (long)(system_time.wMilliseconds * 1000);
+		return 0;
+	}
+#endif
 
 double getmillisecs () {
     struct timeval tv;
@@ -100,6 +137,14 @@ size_t get_mem_usage_kb ()
 {
     fprintf(stderr, "WARN: get_mem_usage_kb not implemented on the mac\n");
     return 0;
+}
+
+#elif WIN32
+
+size_t get_mem_usage_kb()
+{
+	fprintf(stderr, "WARN: get_mem_usage_kb not implemented on the windows\n");
+	return 0;
 }
 
 #endif
@@ -195,7 +240,31 @@ long RandomGenerator::rand_long ()
     return long(random()) | long(random()) << 31;
 }
 
+#elif WIN32
 
+RandomGenerator::RandomGenerator(long seed)
+{
+	srand(seed);
+}
+
+
+RandomGenerator::RandomGenerator(const RandomGenerator & other)
+{
+}
+
+
+int RandomGenerator::rand_int()
+{
+	// RAND_MAX is 31 bits
+	// try to add more randomness in the lower bits
+	int lowbits = rand() >> 15;
+	return rand() ^ lowbits;
+}
+
+long RandomGenerator::rand_long()
+{
+	return long(rand()) | long(rand()) << 31;
+}
 
 #endif
 
@@ -416,8 +485,12 @@ void reflection_ref (const float * u, float * x, size_t n, size_t d, size_t nu)
 static inline __m128 masked_read (int d, const float *x)
 {
     assert (0 <= d && d < 4);
-    __attribute__((__aligned__(16))) float buf[4] = {0, 0, 0, 0};
-    switch (d) {
+#ifdef _MSC_VER
+	__declspec(align(16)) float buf[4] = { 0, 0, 0, 0 };
+#else
+	__attribute__((__aligned__(16))) float buf[4] = { 0, 0, 0, 0 };
+#endif
+	switch (d) {
       case 3:
         buf[2] = x[2];
       case 2:
@@ -1525,7 +1598,13 @@ namespace {
         }
 
         // compute sub-ranges for each thread
+#ifdef _MSC_VER
+		SegmentS *s1s = new SegmentS[nt];
+		SegmentS *s2s = new SegmentS[nt];
+		SegmentS *sws = new SegmentS[nt];
+#else
         SegmentS s1s[nt], s2s[nt], sws[nt];
+#endif
         s2s[0].i0 = s2.i0;
         s2s[nt - 1].i1 = s2.i1;
 
@@ -1584,6 +1663,11 @@ namespace {
                 memcpy(dst + sw.i0, src + s2t.i0, s2t.len() * sizeof(dst[0]));
             }
         }
+#ifdef _MSC_VER
+		delete[] s1s;
+		delete[] s2s;
+		delete[] sws;
+#endif
     }
 
 };
@@ -1618,7 +1702,11 @@ void fvec_argsort_parallel (size_t n, const float *vals,
 
     ArgsortComparator comp = {vals};
 
+#ifdef _MSC_VER
+	SegmentS *segs = new SegmentS[nt];
+#else
     SegmentS segs[nt];
+#endif
 
     // independent sorts
 #pragma omp parallel for
@@ -1658,6 +1746,9 @@ void fvec_argsort_parallel (size_t n, const float *vals,
     }
     assert (permA == perm);
     omp_set_nested(prev_nested);
+#ifdef _MSC_VER
+	delete[] segs;
+#endif
     delete [] perm2;
 }
 
@@ -1744,7 +1835,11 @@ static inline int fvec_madd_and_argmin_sse (size_t n, const float *a,
     while (n--) {
         __m128 vc4 = _mm_add_ps (*a4, _mm_mul_ps (bf4, *b4));
         *c4 = vc4;
+#ifdef _MSC_VER
+		__m128i mask = _mm_castps_si128(_mm_cmpgt_ps(vmin4, vc4));
+#else
         __m128i mask = (__m128i)_mm_cmpgt_ps (vmin4, vc4);
+#endif
         // imin4 = _mm_blendv_epi8 (imin4, idx4, mask); // slower!
 
         imin4 = _mm_or_si128 (_mm_and_si128 (mask, idx4),
@@ -1760,7 +1855,11 @@ static inline int fvec_madd_and_argmin_sse (size_t n, const float *a,
     {
         idx4 = _mm_shuffle_epi32 (imin4, 3 << 2 | 2);
         __m128 vc4 = _mm_shuffle_ps (vmin4, vmin4, 3 << 2 | 2);
-        __m128i mask = (__m128i)_mm_cmpgt_ps (vmin4, vc4);
+#ifdef _MSC_VER
+		__m128i mask = _mm_castps_si128(_mm_cmpgt_ps(vmin4, vc4));
+#else
+		__m128i mask = (__m128i)_mm_cmpgt_ps (vmin4, vc4);
+#endif
         imin4 = _mm_or_si128 (_mm_and_si128 (mask, idx4),
                               _mm_andnot_si128 (mask, imin4));
         vmin4 = _mm_min_ps (vmin4, vc4);
@@ -1769,7 +1868,11 @@ static inline int fvec_madd_and_argmin_sse (size_t n, const float *a,
     {
         idx4 = _mm_shuffle_epi32 (imin4, 1);
         __m128 vc4 = _mm_shuffle_ps (vmin4, vmin4, 1);
-        __m128i mask = (__m128i)_mm_cmpgt_ps (vmin4, vc4);
+#ifdef _MSC_VER
+		__m128i mask = _mm_castps_si128(_mm_cmpgt_ps(vmin4, vc4));
+#else
+		__m128i mask = (__m128i)_mm_cmpgt_ps (vmin4, vc4);
+#endif
         imin4 = _mm_or_si128 (_mm_and_si128 (mask, idx4),
                               _mm_andnot_si128 (mask, imin4));
         // vmin4 = _mm_min_ps (vmin4, vc4);

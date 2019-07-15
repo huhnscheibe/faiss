@@ -14,7 +14,6 @@
 #include <faiss/IndexFlat.h>
 #include <faiss/IndexIVF.h>
 
-
 int main() {
     int d = 64;                            // dimension
     int nb = 100000;                       // database size

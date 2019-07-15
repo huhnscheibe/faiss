@@ -144,9 +144,16 @@ void IndexIVFPQ::train_residual_o (idx_t n, const float *x, float *residuals_2)
 void IndexIVFPQ::encode (long key, const float * x, uint8_t * code) const
 {
     if (by_residual) {
+#ifdef _MSC_VER
+		float *residual_vec = new float[d];
+#else
         float residual_vec[d];
+#endif
         quantizer->compute_residual (x, residual_vec, key);
         pq.compute_code (residual_vec, code);
+#ifdef _MSC_VER
+		delete[] residual_vec;
+#endif
     }
     else pq.compute_code (x, code);
 }
@@ -468,6 +475,18 @@ void IndexIVFPQ::precompute_table ()
 
 namespace {
 
+#include <stdint.h>
+
+	//  Windows
+#ifdef _WIN32
+
+#include <intrin.h>
+	uint64_t get_cycles() {
+		return __rdtsc();
+	}
+
+	//  Linux/GCC
+#else
 static uint64_t get_cycles () {
     uint32_t high, low;
     asm volatile("rdtsc \n\t"
@@ -475,6 +494,7 @@ static uint64_t get_cycles () {
                    "=d" (high));
     return ((uint64_t)high << 32) | (low);
 }
+#endif
 
 #define TIC t0 = get_cycles()
 #define TOC get_cycles () - t0
@@ -601,9 +621,9 @@ struct QueryTables {
         float dis0 = 0;
         uint64_t t0; TIC;
         if (by_residual) {
-            if (metric_type == METRIC_INNER_PRODUCT)
-                FAISS_ASSERT (!"not implemented");
-            else
+			if (metric_type == METRIC_INNER_PRODUCT) {
+				FAISS_ASSERT(!"not implemented");
+			} else
                 dis0 = precompute_list_table_pointers_L2 ();
         }
         init_list_cycles += TOC;
