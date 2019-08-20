@@ -67,7 +67,7 @@ size_t IndexBinaryFlat::remove_ids(const IDSelector& sel) {
       j++;
     }
   }
-  long nremove = ntotal - j;
+  int64_t nremove = ntotal - j;
   if (nremove > 0) {
     ntotal = j;
     xb.resize(ntotal * code_size);

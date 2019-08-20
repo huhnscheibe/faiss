@@ -18,7 +18,7 @@
 ///
 /// Assertions
 ///
-
+#define __PRETTY_FUNCTION__ __FUNCSIG__
 #define FAISS_ASSERT(X)                                                 \
   do {                                                                  \
     if (! (X)) {                                                        \

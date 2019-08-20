@@ -211,7 +211,7 @@ void IndexIVF::make_direct_map (bool new_maintain_direct_map)
             size_t list_size = invlists->list_size (key);
             ScopedIds idlist (invlists, key);
 
-            for (long ofs = 0; ofs < list_size; ofs++) {
+            for (idx_t ofs = 0; ofs < list_size; ofs++) {
                 FAISS_THROW_IF_NOT_MSG (
                        0 <= idlist [ofs] && idlist[ofs] < ntotal,
                        "direct map supported only for seuquential ids");
@@ -252,8 +252,8 @@ void IndexIVF::search_preassigned (idx_t n, const float *x, idx_t k,
                                    bool store_pairs,
                                    const IVFSearchParameters *params) const
 {
-    long nprobe = params ? params->nprobe : this->nprobe;
-    long max_codes = params ? params->max_codes : this->max_codes;
+    idx_t nprobe = params ? params->nprobe : this->nprobe;
+    idx_t max_codes = params ? params->max_codes : this->max_codes;
 
     size_t nlistv = 0, ndis = 0, nheap = 0;
 
@@ -501,7 +501,7 @@ void IndexIVF::range_search_preassigned (
         if (parallel_mode == 0) {
 
 #pragma omp for
-            for (size_t i = 0; i < nx; i++) {
+            for (int64_t i = 0; i < nx; i++) {
                 scanner->set_query (x + i * d);
 
                 RangeQueryResult & qres = pres.new_result (i);
@@ -520,7 +520,7 @@ void IndexIVF::range_search_preassigned (
                 RangeQueryResult & qres = pres.new_result (i);
 
 #pragma omp for schedule(dynamic)
-                for (size_t ik = 0; ik < nprobe; ik++) {
+                for (int64_t ik = 0; ik < nprobe; ik++) {
                     scan_list_func (i, ik, qres);
                 }
             }
@@ -529,7 +529,7 @@ void IndexIVF::range_search_preassigned (
             RangeQueryResult *qres = nullptr;
 
 #pragma omp for schedule(dynamic)
-            for (size_t iik = 0; iik < nx * nprobe; iik++) {
+            for (int64_t iik = 0; iik < nx * nprobe; iik++) {
                 size_t i = iik / nprobe;
                 size_t ik = iik % nprobe;
                 if (qres == nullptr || qres->qno != i) {

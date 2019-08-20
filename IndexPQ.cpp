@@ -372,7 +372,7 @@ void IndexPQ::search_core_polysemous (idx_t n, const float *x, idx_t k,
 
         const float * dis_table_qi = dis_tables + qi * pq.M * pq.ksub;
 
-        int64_t * heap_ids = labels + qi * k;
+		idx_t * heap_ids = labels + qi * k;
         float *heap_dis = distances + qi * k;
         maxheap_heapify (k, heap_dis, heap_ids);
 
@@ -505,7 +505,7 @@ void IndexPQ::hamming_distance_histogram (idx_t n, const float *x,
         hamdis_t *distances = new hamdis_t [nb * bs];
         ScopeDeleter<hamdis_t> del (distances);
 #pragma omp for
-        for (size_t q0 = 0; q0 < n; q0 += bs) {
+        for (int64_t q0 = 0; q0 < n; q0 += bs) {
             // printf ("dis stats: %ld/%ld\n", q0, n);
             size_t q1 = q0 + bs;
             if (q1 > n) q1 = n;

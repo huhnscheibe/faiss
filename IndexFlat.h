@@ -13,7 +13,9 @@
 #include <vector>
 
 #include "Index.h"
-
+#ifdef _MSC_VER
+#include "drand48.h"
+#endif
 
 namespace faiss {
 

@@ -38,29 +38,29 @@ void IndexIVFFlat::add_with_ids (idx_t n, const float * x, const idx_t *xids)
     add_core (n, x, xids, nullptr);
 }
 
-void IndexIVFFlat::add_core (idx_t n, const float * x, const int64_t *xids,
-                             const int64_t *precomputed_idx)
+void IndexIVFFlat::add_core (idx_t n, const float * x, const idx_t *xids,
+                             const idx_t *precomputed_idx)
 
 {
     FAISS_THROW_IF_NOT (is_trained);
     assert (invlists);
     FAISS_THROW_IF_NOT_MSG (!(maintain_direct_map && xids),
                             "cannot have direct map and add with ids");
-    const int64_t * idx;
-    ScopeDeleter<int64_t> del;
+    const idx_t * idx;
+    ScopeDeleter<idx_t> del;
 
     if (precomputed_idx) {
         idx = precomputed_idx;
     } else {
-        int64_t * idx0 = new int64_t [n];
+		idx_t * idx0 = new idx_t[n];
         del.set (idx0);
         quantizer->assign (n, x, idx0);
         idx = idx0;
     }
-    int64_t n_add = 0;
+    idx_t n_add = 0;
     for (size_t i = 0; i < n; i++) {
-        int64_t id = xids ? xids[i] : ntotal + i;
-        int64_t list_no = idx [i];
+        idx_t id = xids ? xids[i] : ntotal + i;
+        idx_t list_no = idx [i];
 
         if (list_no < 0)
             continue;
@@ -130,7 +130,7 @@ struct IVFFlatScanner: InvertedListScanner {
                 fvec_inner_product (xi, yj, d) : fvec_L2sqr (xi, yj, d);
             if (C::cmp (simi[0], dis)) {
                 heap_pop<C> (k, simi, idxi);
-                int64_t id = store_pairs ? (list_no << 32 | j) : ids[j];
+                idx_t id = store_pairs ? (list_no << 32 | j) : ids[j];
                 heap_push<C> (k, simi, idxi, dis, id);
                 nup++;
             }
@@ -150,7 +150,7 @@ struct IVFFlatScanner: InvertedListScanner {
             float dis = metric == METRIC_INNER_PRODUCT ?
                 fvec_inner_product (xi, yj, d) : fvec_L2sqr (xi, yj, d);
             if (C::cmp (radius, dis)) {
-                int64_t id = store_pairs ? (list_no << 32 | j) : ids[j];
+                idx_t id = store_pairs ? (list_no << 32 | j) : ids[j];
                 res.add (dis, id);
             }
         }
@@ -169,10 +169,10 @@ InvertedListScanner* IndexIVFFlat::get_InvertedListScanner
 {
     if (metric_type == METRIC_INNER_PRODUCT) {
         return new IVFFlatScanner<
-            METRIC_INNER_PRODUCT, CMin<float, int64_t> > (d, store_pairs);
+            METRIC_INNER_PRODUCT, CMin<float, idx_t> > (d, store_pairs);
     } else if (metric_type == METRIC_L2) {
         return new IVFFlatScanner<
-            METRIC_L2, CMax<float, int64_t> >(d, store_pairs);
+            METRIC_L2, CMax<float, idx_t> >(d, store_pairs);
     } else {
         FAISS_THROW_MSG("metric type not supported");
     }
@@ -194,12 +194,12 @@ void IndexIVFFlat::update_vectors (int n, idx_t *new_ids, const float *x)
         FAISS_THROW_IF_NOT_MSG (0 <= id && id < ntotal,
                                 "id to update out of range");
         { // remove old one
-            int64_t dm = direct_map[id];
-            int64_t ofs = dm & 0xffffffff;
-            int64_t il = dm >> 32;
+            idx_t dm = direct_map[id];
+            idx_t ofs = dm & 0xffffffff;
+            idx_t il = dm >> 32;
             size_t l = invlists->list_size (il);
             if (ofs != l - 1) { // move l - 1 to ofs
-                int64_t id2 = invlists->get_single_id (il, l - 1);
+                idx_t id2 = invlists->get_single_id (il, l - 1);
                 direct_map[id2] = (il << 32) | ofs;
                 invlists->update_entry (il, ofs, id2,
                                         invlists->get_single_code (il, l - 1));
@@ -207,9 +207,9 @@ void IndexIVFFlat::update_vectors (int n, idx_t *new_ids, const float *x)
             invlists->resize (il, l - 1);
         }
         { // insert new one
-            int64_t il = assign[i];
+            idx_t il = assign[i];
             size_t l = invlists->list_size (il);
-            int64_t dm = (il << 32) | l;
+            idx_t dm = (il << 32) | l;
             direct_map[id] = dm;
             invlists->add_entry (il, id, (const uint8_t*)(x + i * d));
         }
@@ -217,7 +217,7 @@ void IndexIVFFlat::update_vectors (int n, idx_t *new_ids, const float *x)
 
 }
 
-void IndexIVFFlat::reconstruct_from_offset (int64_t list_no, int64_t offset,
+void IndexIVFFlat::reconstruct_from_offset (idx_t list_no, idx_t offset,
                                             float* recons) const
 {
     memcpy (recons, invlists->get_single_code (list_no, offset), code_size);
@@ -240,8 +240,8 @@ void IndexIVFFlatDedup::train(idx_t n, const float* x)
     float * x2 = new float [n * d];
     ScopeDeleter<float> del (x2);
 
-    int64_t n2 = 0;
-    for (int64_t i = 0; i < n; i++) {
+    idx_t n2 = 0;
+    for (idx_t i = 0; i < n; i++) {
         uint64_t hash = hash_bytes((uint8_t *)(x + i * d), code_size);
         if (map.count(hash) &&
             !memcmp (x2 + map[hash] * d, x + i * d, code_size)) {
@@ -270,15 +270,15 @@ void IndexIVFFlatDedup::add_with_ids(
     FAISS_THROW_IF_NOT_MSG (
            !maintain_direct_map,
            "IVFFlatDedup not implemented with direct_map");
-    int64_t * idx = new int64_t [na];
-    ScopeDeleter<int64_t> del (idx);
+    idx_t * idx = new idx_t [na];
+    ScopeDeleter<idx_t> del (idx);
     quantizer->assign (na, x, idx);
 
-    int64_t n_add = 0, n_dup = 0;
+    idx_t n_add = 0, n_dup = 0;
     // TODO make a omp loop with this
     for (size_t i = 0; i < na; i++) {
         idx_t id = xids ? xids[i] : ntotal + i;
-        int64_t list_no = idx [i];
+		idx_t list_no = idx [i];
 
         if (list_no < 0) {
             continue;
@@ -288,9 +288,9 @@ void IndexIVFFlatDedup::add_with_ids(
         // search if there is already an entry with that id
         InvertedLists::ScopedCodes codes (invlists, list_no);
 
-        int64_t n = invlists->list_size (list_no);
-        int64_t offset = -1;
-        for (int64_t o = 0; o < n; o++) {
+		idx_t n = invlists->list_size (list_no);
+		idx_t offset = -1;
+        for (idx_t o = 0; o < n; o++) {
             if (!memcmp (codes.get() + o * code_size,
                          xi, code_size)) {
                 offset = o;
@@ -335,10 +335,10 @@ void IndexIVFFlatDedup::search_preassigned (
     std::vector <idx_t> labels2 (k);
     std::vector <float> dis2 (k);
 
-    for (int64_t i = 0; i < n; i++) {
+    for (idx_t i = 0; i < n; i++) {
         idx_t *labels1 = labels + i * k;
         float *dis1 = distances + i * k;
-        int64_t j = 0;
+		idx_t j = 0;
         for (; j < k; j++) {
             if (instances.find (labels1[j]) != instances.end ()) {
                 // a duplicate: special handling
@@ -347,8 +347,8 @@ void IndexIVFFlatDedup::search_preassigned (
         }
         if (j < k) {
             // there are duplicates, special handling
-            int64_t j0 = j;
-            int64_t rp = j;
+			idx_t j0 = j;
+			idx_t rp = j;
             while (j < k) {
                 auto range = instances.equal_range (labels1[rp]);
                 float dis = dis1[rp];
@@ -406,11 +406,11 @@ size_t IndexIVFFlatDedup::remove_ids(const IDSelector& sel)
     FAISS_THROW_IF_NOT_MSG (!maintain_direct_map,
                     "direct map remove not implemented");
 
-    std::vector<int64_t> toremove(nlist);
+    std::vector<idx_t> toremove(nlist);
 
 #pragma omp parallel for
-    for (int64_t i = 0; i < nlist; i++) {
-        int64_t l0 = invlists->list_size (i), l = l0, j = 0;
+    for (idx_t i = 0; i < nlist; i++) {
+		idx_t l0 = invlists->list_size (i), l = l0, j = 0;
         InvertedLists::ScopedIds idsi (invlists, i);
         while (j < l) {
             if (sel.is_member (idsi[j])) {
@@ -434,8 +434,8 @@ size_t IndexIVFFlatDedup::remove_ids(const IDSelector& sel)
         toremove[i] = l0 - l;
     }
     // this will not run well in parallel on ondisk because of possible shrinks
-    int64_t nremove = 0;
-    for (int64_t i = 0; i < nlist; i++) {
+	idx_t nremove = 0;
+    for (idx_t i = 0; i < nlist; i++) {
         if (toremove[i] > 0) {
             nremove += toremove[i];
             invlists->resize(
@@ -463,7 +463,8 @@ void IndexIVFFlatDedup::update_vectors (int , idx_t *, const float *)
 
 
 void IndexIVFFlatDedup::reconstruct_from_offset (
-         int64_t , int64_t , float* ) const
+	     idx_t, idx_t,
+         float* ) const
 {
     FAISS_THROW_MSG ("not implemented");
 }

@@ -80,7 +80,7 @@ void IndexBinaryIVF::add_core(idx_t n, const uint8_t *x, const idx_t *xids,
     idx = scoped_idx.get();
   }
 
-  long n_add = 0;
+  idx_t n_add = 0;
   for (size_t i = 0; i < n; i++) {
     idx_t id = xids ? xids[i] : ntotal + i;
     idx_t list_no = idx[i];
@@ -409,8 +409,8 @@ void search_knn_hamming_heap(const IndexBinaryIVF& ivf,
                              bool store_pairs,
                              const IVFSearchParameters *params)
 {
-    long nprobe = params ? params->nprobe : ivf.nprobe;
-    long max_codes = params ? params->max_codes : ivf.max_codes;
+	idx_t nprobe = params ? params->nprobe : ivf.nprobe;
+	idx_t max_codes = params ? params->max_codes : ivf.max_codes;
     MetricType metric_type = ivf.metric_type;
 
     // almost verbatim copy from IndexIVF::search_preassigned
@@ -425,7 +425,7 @@ void search_knn_hamming_heap(const IndexBinaryIVF& ivf,
             (ivf.get_InvertedListScanner (store_pairs));
 
 #pragma omp for
-        for (size_t i = 0; i < n; i++) {
+        for (int64_t i = 0; i < n; i++) {
             const uint8_t *xi = x + i * ivf.code_size;
             scanner->set_query(xi);
 
@@ -504,8 +504,8 @@ void search_knn_hamming_count(const IndexBinaryIVF& ivf,
   std::vector<int> all_counters(nx * nBuckets, 0);
   std::unique_ptr<idx_t[]> all_ids_per_dis(new idx_t[nx * nBuckets * k]);
 
-  long nprobe = params ? params->nprobe : ivf.nprobe;
-  long max_codes = params ? params->max_codes : ivf.max_codes;
+  idx_t nprobe = params ? params->nprobe : ivf.nprobe;
+  idx_t max_codes = params ? params->max_codes : ivf.max_codes;
 
   std::vector<HCounterState<HammingComputer>> cs;
   for (size_t i = 0; i < nx; ++i) {

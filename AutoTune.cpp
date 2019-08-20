@@ -435,7 +435,11 @@ void ParameterSpace::set_index_parameters (Index *index, size_t cno) const
 void ParameterSpace::set_index_parameters (
      Index *index, const char *description_in) const
 {
+#ifdef _MSC_VER
+	char *description = new char[strlen(description_in) + 1];
+#else
     char description[strlen(description_in) + 1];
+#endif
     char *ptr;
     memcpy (description, description_in, strlen(description_in) + 1);
 
@@ -450,6 +454,9 @@ void ParameterSpace::set_index_parameters (
         set_index_parameter (index, name, val);
     }
 
+#ifdef _MSC_VER
+	delete[] description;
+#endif
 }
 
 void ParameterSpace::set_index_parameter (
@@ -750,7 +757,11 @@ Index *index_factory (int d, const char *description_in, MetricType metric)
 
     ScopeDeleter1<Index> del_coarse_quantizer, del_index;
 
+#ifdef _MSC_VER
+	char *description = new char[strlen(description_in) + 1];
+#else
     char description[strlen(description_in) + 1];
+#endif
     char *ptr;
     memcpy (description, description_in, strlen(description_in) + 1);
 

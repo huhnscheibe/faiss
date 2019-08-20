@@ -110,9 +110,9 @@ void IndexIDMapTemplate<IndexT>::range_search
 namespace {
 
 struct IDTranslatedSelector: IDSelector {
-    const std::vector <int64_t> & id_map;
+    const std::vector <idx_t> & id_map;
     const IDSelector & sel;
-    IDTranslatedSelector (const std::vector <int64_t> & id_map,
+    IDTranslatedSelector (const std::vector <idx_t> & id_map,
                           const IDSelector & sel):
         id_map (id_map), sel (sel)
     {}
@@ -320,7 +320,8 @@ void IndexSplitVectors::search (
                     distances[j] += distances_i[j];
                 } else {
                     labels[j] = -1;
-                    distances[j] = 0.0 / 0.0;
+					float zero = 0.0;
+                    distances[j] = 0.0 / zero;
                 }
             }
         }

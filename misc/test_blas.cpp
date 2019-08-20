@@ -8,6 +8,10 @@
 #include <cstdio>
 #include <cstdlib>
 
+#ifdef _MSC_VER
+#include <faiss/drand48.h>
+#endif
+
 #undef FINTEGER
 #define FINTEGER long
 

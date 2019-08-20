@@ -24,7 +24,7 @@ int d = 64;
 size_t nb = 8000;
 
 
-double eval_codec_error (long ncentroids, long m, const std::vector<float> &v)
+double eval_codec_error (int64_t ncentroids, int64_t m, const std::vector<float> &v)
 {
     faiss::IndexFlatL2 coarse_quantizer (d);
     faiss::IndexIVFPQ index (&coarse_quantizer, d,

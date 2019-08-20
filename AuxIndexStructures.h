@@ -19,6 +19,9 @@
 #include <unordered_set>
 #include <memory>
 #include <mutex>
+#ifdef _MSC_VER
+#include "unistd.h"
+#endif
 
 #include "Index.h"
 

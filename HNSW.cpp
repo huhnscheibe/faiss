@@ -6,7 +6,7 @@
  */
 
 // -*- c++ -*-
-
+#include <tuple>
 #include "HNSW.h"
 #include "AuxIndexStructures.h"
 

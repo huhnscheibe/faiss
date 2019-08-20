@@ -160,7 +160,7 @@ struct IndexIVFScalarQuantizer: IndexIVF {
         const override;
 
 
-    void reconstruct_from_offset (int64_t list_no, int64_t offset,
+    void reconstruct_from_offset (idx_t list_no, idx_t offset,
                                   float* recons) const override;
 
 };

@@ -33,8 +33,13 @@
 /* The Hamming distance type */
 typedef int32_t hamdis_t;
 
-namespace faiss {
+#ifdef _MSC_VER
+#  include <intrin.h>
+#  define __builtin_popcount __popcnt
+#  define __builtin_popcountl __popcnt64
+#endif
 
+namespace faiss {
 
 extern size_t hamming_batch_size;
 

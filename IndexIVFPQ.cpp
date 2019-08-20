@@ -71,8 +71,9 @@ void IndexIVFPQ::train_residual_o (idx_t n, const float *x, float *residuals_2)
 {
     const float * x_in = x;
 
+	size_t np = n;
     x = fvecs_maybe_subsample (
-         d, (size_t*)&n, pq.cp.max_points_per_centroid * pq.ksub,
+         d, &np, pq.cp.max_points_per_centroid * pq.ksub,
          x, verbose, pq.cp.seed);
 
     ScopeDeleter<float> del_x (x_in == x ? nullptr : x);
@@ -143,9 +144,16 @@ void IndexIVFPQ::train_residual_o (idx_t n, const float *x, float *residuals_2)
 void IndexIVFPQ::encode (idx_t key, const float * x, uint8_t * code) const
 {
     if (by_residual) {
+#ifdef _MSC_VER
+		float *residual_vec = new float[d];
+#else
         float residual_vec[d];
+#endif
         quantizer->compute_residual (x, residual_vec, key);
         pq.compute_code (residual_vec, code);
+#ifdef _MSC_VER
+		delete[] residual_vec;
+#endif
     }
     else pq.compute_code (x, code);
 }
@@ -313,7 +321,7 @@ void IndexIVFPQ::add_core_o (idx_t n, const float * x, const idx_t *xids,
 }
 
 
-void IndexIVFPQ::reconstruct_from_offset (int64_t list_no, int64_t offset,
+void IndexIVFPQ::reconstruct_from_offset (idx_t list_no, idx_t offset,
                                           float* recons) const
 {
     const uint8_t* code = invlists->get_single_code (list_no, offset);
@@ -459,6 +467,18 @@ namespace {
 
 using idx_t = Index::idx_t;
 
+#include <stdint.h>
+
+	//  Windows
+#ifdef _WIN32
+
+#include <intrin.h>
+	uint64_t get_cycles() {
+		return __rdtsc();
+	}
+
+	//  Linux/GCC
+#else
 static uint64_t get_cycles () {
 #ifdef  __x86_64__
     uint32_t high, low;
@@ -470,6 +490,7 @@ static uint64_t get_cycles () {
     return 0;
 #endif
 }
+#endif
 
 #define TIC t0 = get_cycles()
 #define TOC get_cycles () - t0
@@ -673,7 +694,7 @@ struct QueryTables {
             const float *qtab = sim_table_2; // query-specific table
             float *ltab = sim_table; // (output) list-specific table
 
-            long k = key;
+			idx_t k = key;
             for (int cm = 0; cm < cpq.M; cm++) {
                 // compute PQ index
                 int ki = k & ((uint64_t(1) << cpq.nbits) - 1);
@@ -729,7 +750,7 @@ struct QueryTables {
             const ProductQuantizer &cpq = miq->pq;
             int Mf = pq.M / cpq.M;
 
-            long k = key;
+			idx_t k = key;
             int m0 = 0;
             for (int cm = 0; cm < cpq.M; cm++) {
                 int ki = k & ((uint64_t(1) << cpq.nbits) - 1);
@@ -1263,7 +1284,7 @@ void IndexIVFPQR::search_preassigned (idx_t n, const float *x, idx_t k,
 {
     uint64_t t0;
     TIC;
-    size_t k_coarse = long(k * k_factor);
+    size_t k_coarse = idx_t(k * k_factor);
     idx_t *coarse_labels = new idx_t [k_coarse * n];
     ScopeDeleter<idx_t> del1 (coarse_labels);
     { // query with quantizer levels 1 and 2.
@@ -1341,7 +1362,7 @@ void IndexIVFPQR::search_preassigned (idx_t n, const float *x, idx_t k,
     indexIVFPQ_stats.refine_cycles += TOC;
 }
 
-void IndexIVFPQR::reconstruct_from_offset (int64_t list_no, int64_t offset,
+void IndexIVFPQR::reconstruct_from_offset (idx_t list_no, idx_t offset,
                                            float* recons) const
 {
     IndexIVFPQ::reconstruct_from_offset (list_no, offset, recons);
@@ -1503,7 +1524,11 @@ void Index2Layer::search(
 
 void Index2Layer::reconstruct_n(idx_t i0, idx_t ni, float* recons) const
 {
+#ifdef _MSC_VER
+	float *recons1 = new float[d];
+#else
     float recons1[d];
+#endif
     FAISS_THROW_IF_NOT (i0 >= 0 && i0 + ni <= ntotal);
     const uint8_t *rp = &codes[i0 * code_size];
 
@@ -1519,6 +1544,7 @@ void Index2Layer::reconstruct_n(idx_t i0, idx_t ni, float* recons) const
         rp += code_size_2;
         recons += d;
     }
+	delete[] recons1;
 }
 
 void Index2Layer::transfer_to_IVFPQ (IndexIVFPQ & other) const

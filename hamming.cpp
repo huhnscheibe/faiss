@@ -33,6 +33,7 @@
 #include <math.h>
 #include <assert.h>
 #include <limits.h>
+#include <algorithm>
 
 #include "Heap.h"
 #include "FaissAssert.h"
@@ -281,7 +282,7 @@ void hammings_knn_hc (
     for (size_t j0 = 0; j0 < n2; j0 += block_size) {
       const size_t j1 = std::min(j0 + block_size, n2);
 #pragma omp parallel for
-      for (size_t i = 0; i < ha->nh; i++) {
+      for (int64_t i = 0; i < ha->nh; i++) {
         HammingComputer hc (bs1 + i * bytes_per_code, bytes_per_code);
 
         const uint8_t * bs2_ = bs2 + j0 * bytes_per_code;
@@ -333,7 +334,7 @@ void hammings_knn_mc (
   for (size_t j0 = 0; j0 < nb; j0 += block_size) {
     const size_t j1 = std::min(j0 + block_size, nb);
 #pragma omp parallel for
-    for (size_t i = 0; i < na; ++i) {
+    for (int64_t i = 0; i < na; ++i) {
       for (size_t j = j0; j < j1; ++j) {
         cs[i].update_counter(b + j * bytes_per_code, j);
       }
@@ -380,7 +381,7 @@ void hammings_knn_hc_1 (
     }
 
 #pragma omp parallel for
-    for (size_t i = 0; i < ha->nh; i++) {
+    for (int64_t i = 0; i < ha->nh; i++) {
         const uint64_t bs1_ = bs1 [i];
         const uint64_t * bs2_ = bs2;
         hamdis_t dis;
@@ -436,7 +437,7 @@ void fvecs2bitvecs (const float * x, uint8_t * b, size_t d, size_t n)
 {
     const int64_t ncodes = ((d + 7) / 8);
 #pragma omp parallel for
-    for (size_t i = 0; i < n; i++)
+    for (int64_t i = 0; i < n; i++)
         fvec2bitvec (x + i * d, b + i * ncodes, d);
 }
 

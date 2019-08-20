@@ -17,7 +17,9 @@
 #include <faiss/AutoTune.h>
 #include <faiss/index_io.h>
 #include <faiss/IVFlib.h>
-
+#ifdef _MSC_VER
+#include <faiss/drand48.h>
+#endif
 using namespace faiss;
 
 typedef Index::idx_t idx_t;

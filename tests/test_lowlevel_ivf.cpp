@@ -20,6 +20,9 @@
 #include <faiss/index_io.h>
 #include <faiss/IVFlib.h>
 #include <faiss/VectorTransform.h>
+#ifdef _MSC_VER
+#include <faiss/drand48.h>
+#endif
 
 using namespace faiss;
 

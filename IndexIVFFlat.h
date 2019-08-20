@@ -29,8 +29,8 @@ struct IndexIVFFlat: IndexIVF {
             MetricType = METRIC_L2);
 
     /// same as add_with_ids, with precomputed coarse quantizer
-    virtual void add_core (idx_t n, const float * x, const int64_t *xids,
-                   const int64_t *precomputed_idx);
+    virtual void add_core (idx_t n, const float * x, const idx_t *xids,
+                   const idx_t *precomputed_idx);
 
     /// implemented for all IndexIVF* classes
     void add_with_ids(idx_t n, const float* x, const idx_t* xids) override;
@@ -53,7 +53,7 @@ struct IndexIVFFlat: IndexIVF {
      */
     virtual void update_vectors (int nv, idx_t *idx, const float *v);
 
-    void reconstruct_from_offset (int64_t list_no, int64_t offset,
+    void reconstruct_from_offset (idx_t list_no, idx_t offset,
                                   float* recons) const override;
 
     IndexIVFFlat () {}
@@ -99,7 +99,7 @@ struct IndexIVFFlatDedup: IndexIVFFlat {
 
 
     /// not implemented
-    void reconstruct_from_offset (int64_t list_no, int64_t offset,
+    void reconstruct_from_offset (idx_t list_no, idx_t offset,
                                   float* recons) const override;
 
     IndexIVFFlatDedup () {}

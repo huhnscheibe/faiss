@@ -17,7 +17,9 @@
 #include <faiss/IndexBinaryIVF.h>
 #include <faiss/AutoTune.h>
 #include <faiss/IVFlib.h>
-
+#ifdef _MSC_VER
+#include <faiss/drand48.h>
+#endif
 using namespace faiss;
 
 namespace {

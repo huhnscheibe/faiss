@@ -14,9 +14,28 @@
 #include <cstring>
 #include <cmath>
 
-#include <sys/time.h>
 #include <sys/types.h>
+#ifdef _MSC_VER
+#include <sys/timeb.h>
+#include <time.h>
+#include "unistd.h"
+struct timeval
+{
+	time_t	tv_sec;	/* seconds */
+	int64_t	tv_usec;	/* and nanoseconds */
+};
+int gettimeofday(struct timeval* t, void* timezone)
+{
+	struct _timeb timebuffer;
+	_ftime(&timebuffer);
+	t->tv_sec = timebuffer.time;
+	t->tv_usec = 1000 * timebuffer.millitm;
+	return 0;
+}
+#else
+#include <sys/time.h>
 #include <unistd.h>
+#endif
 
 #include <omp.h>
 
@@ -29,7 +48,7 @@
 
 
 #ifndef FINTEGER
-#define FINTEGER long
+#define FINTEGER int
 #endif
 
 
@@ -90,7 +109,7 @@ size_t get_mem_usage_kb ()
     return sz;
 }
 
-#elif __APPLE__
+#elif __APPLE__ || _MSC_VER
 
 size_t get_mem_usage_kb ()
 {
@@ -152,7 +171,7 @@ void float_rand (float * x, size_t n, int64_t seed)
     int a0 = rng0.rand_int (), b0 = rng0.rand_int ();
 
 #pragma omp parallel for
-    for (size_t j = 0; j < nblock; j++) {
+    for (int64_t j = 0; j < nblock; j++) {
 
         RandomGenerator rng (a0 + j * b0);
 
@@ -174,7 +193,7 @@ void float_randn (float * x, size_t n, int64_t seed)
     int a0 = rng0.rand_int (), b0 = rng0.rand_int ();
 
 #pragma omp parallel for
-    for (size_t j = 0; j < nblock; j++) {
+    for (int64_t j = 0; j < nblock; j++) {
         RandomGenerator rng (a0 + j * b0);
 
         double a = 0, b = 0, s = 0;
@@ -211,7 +230,7 @@ void int64_rand (int64_t * x, size_t n, int64_t seed)
     int a0 = rng0.rand_int (), b0 = rng0.rand_int ();
 
 #pragma omp parallel for
-    for (size_t j = 0; j < nblock; j++) {
+    for (int64_t j = 0; j < nblock; j++) {
 
         RandomGenerator rng (a0 + j * b0);
 
@@ -248,7 +267,7 @@ void byte_rand (uint8_t * x, size_t n, int64_t seed)
     int a0 = rng0.rand_int (), b0 = rng0.rand_int ();
 
 #pragma omp parallel for
-    for (size_t j = 0; j < nblock; j++) {
+    for (int64_t j = 0; j < nblock; j++) {
 
         RandomGenerator rng (a0 + j * b0);
 
@@ -356,7 +375,7 @@ void fvec_norms_L2 (float * __restrict nr,
 {
 
 #pragma omp parallel for
-    for (size_t i = 0; i < nx; i++) {
+    for (int64_t i = 0; i < nx; i++) {
         nr[i] = sqrtf (fvec_norm_L2sqr (x + i * d, d));
     }
 }
@@ -366,7 +385,7 @@ void fvec_norms_L2sqr (float * __restrict nr,
                        size_t d, size_t nx)
 {
 #pragma omp parallel for
-    for (size_t i = 0; i < nx; i++)
+    for (int64_t i = 0; i < nx; i++)
         nr[i] = fvec_norm_L2sqr (x + i * d, d);
 }
 
@@ -375,7 +394,7 @@ void fvec_norms_L2sqr (float * __restrict nr,
 void fvec_renorm_L2 (size_t d, size_t nx, float * __restrict x)
 {
 #pragma omp parallel for
-    for (size_t i = 0; i < nx; i++) {
+    for (int64_t i = 0; i < nx; i++) {
         float * __restrict xi = x + i * d;
 
         float nr = fvec_norm_L2sqr (xi, d);
@@ -421,7 +440,7 @@ static void knn_inner_product_sse (const float * x,
         size_t i1 = std::min(i0 + check_period, nx);
 
 #pragma omp parallel for
-        for (size_t i = i0; i < i1; i++) {
+        for (int64_t i = i0; i < i1; i++) {
             const float * x_i = x + i * d;
             const float * y_j = y;
 
@@ -461,7 +480,7 @@ static void knn_L2sqr_sse (
         size_t i1 = std::min(i0 + check_period, nx);
 
 #pragma omp parallel for
-        for (size_t i = i0; i < i1; i++) {
+        for (int64_t i = i0; i < i1; i++) {
             const float * x_i = x + i * d;
             const float * y_j = y;
             size_t j;
@@ -575,7 +594,7 @@ static void knn_L2sqr_blas (const float * x,
 
             /* collect minima */
 #pragma omp parallel for
-            for (size_t i = i0; i < i1; i++) {
+            for (int64_t i = i0; i < i1; i++) {
                 float * __restrict simi = res->get_val(i);
                 int64_t * __restrict idxi = res->get_ids (i);
                 const float *ip_line = ip_block + (i - i0) * (j1 - j0);
@@ -731,7 +750,7 @@ void knn_inner_products_by_idx (const float * x,
     size_t k = res->k;
 
 #pragma omp parallel for
-    for (size_t i = 0; i < nx; i++) {
+    for (int64_t i = 0; i < nx; i++) {
         const float * x_ = x + i * d;
         const int64_t * idsi = ids + i * ny;
         size_t j;
@@ -762,7 +781,7 @@ void knn_L2sqr_by_idx (const float * x,
     size_t k = res->k;
 
 #pragma omp parallel for
-    for (size_t i = 0; i < nx; i++) {
+    for (int64_t i = 0; i < nx; i++) {
         const float * x_ = x + i * d;
         const int64_t * __restrict idsi = ids + i * ny;
         float * __restrict simi = res->get_val(i);
@@ -968,7 +987,7 @@ void inner_product_to_L2sqr (float * __restrict dis,
 {
 
 #pragma omp parallel for
-    for (size_t j = 0 ; j < n1 ; j++) {
+    for (int64_t j = 0 ; j < n1 ; j++) {
         float * disj = dis + j * n2;
         for (size_t i = 0 ; i < n2 ; i++)
             disj[i] = nr1[j] + nr2[i] - 2 * disj[i];
@@ -1091,7 +1110,7 @@ int km_update_centroids (const float * x,
     }
 
 #pragma omp parallel for
-    for (size_t ci = 0; ci < k; ci++) {
+    for (int64_t ci = 0; ci < k; ci++) {
         float * c = centroids + ci * d;
         float ni = (float) hassign[ci];
         if (ni != 0) {
@@ -1361,7 +1380,13 @@ namespace {
         }
 
         // compute sub-ranges for each thread
-        SegmentS s1s[nt], s2s[nt], sws[nt];
+#ifdef _MSC_VER
+		SegmentS *s1s = new SegmentS[nt];
+		SegmentS *s2s = new SegmentS[nt];
+		SegmentS *sws = new SegmentS[nt];
+#else
+		SegmentS s1s[nt], s2s[nt], sws[nt];
+#endif
         s2s[0].i0 = s2.i0;
         s2s[nt - 1].i1 = s2.i1;
 
@@ -1420,6 +1445,11 @@ namespace {
                 memcpy(dst + sw.i0, src + s2t.i0, s2t.len() * sizeof(dst[0]));
             }
         }
+#ifdef _MSC_VER
+		delete[] s1s;
+		delete[] s2s;
+		delete[] sws;
+#endif
     }
 
 };
@@ -1453,8 +1483,11 @@ void fvec_argsort_parallel (size_t n, const float *vals,
     for (size_t i = 0; i < n; i++) permA[i] = i;
 
     ArgsortComparator comp = {vals};
-
+#ifdef _MSC_VER
+	SegmentS *segs = new SegmentS[nt];
+#else
     SegmentS segs[nt];
+#endif
 
     // independent sorts
 #pragma omp parallel for
@@ -1495,6 +1528,9 @@ void fvec_argsort_parallel (size_t n, const float *vals,
     assert (permA == perm);
     omp_set_nested(prev_nested);
     delete [] perm2;
+#ifdef _MSC_VER
+	delete[] segs;
+#endif
 }
 
 

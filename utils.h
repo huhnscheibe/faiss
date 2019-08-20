@@ -22,6 +22,16 @@
 
 #include "Heap.h"
 
+#ifdef _MSC_VER
+#include <cmath>
+#include "drand48.h"
+#define finite(x) isfinite(x)
+#endif
+
+#if defined(_WIN32) || defined(_WIN64)
+/* We are on Windows */
+# define strtok_r strtok_s
+#endif
 
 namespace faiss {
 

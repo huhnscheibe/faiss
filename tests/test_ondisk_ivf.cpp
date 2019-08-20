@@ -20,7 +20,11 @@
 #include <faiss/IndexFlat.h>
 #include <faiss/utils.h>
 #include <faiss/index_io.h>
+#ifdef _MSC_VER
+#include <faiss/unistd.h>
+#endif
 
+using namespace faiss;
 
 namespace {
 
