@@ -18,7 +18,9 @@
 #include <vector>
 #include <unordered_set>
 #include <memory>
-
+#ifdef _MSC_VER
+#include "unistd.h"
+#endif
 
 #include "Index.h"
 

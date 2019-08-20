@@ -55,7 +55,7 @@ void IndexBinaryFlat::search(idx_t n, const uint8_t *x, idx_t k,
   }
 }
 
-long IndexBinaryFlat::remove_ids(const IDSelector& sel) {
+int64_t IndexBinaryFlat::remove_ids(const IDSelector& sel) {
   idx_t j = 0;
   for (idx_t i = 0; i < ntotal; i++) {
     if (sel.is_member(i)) {
@@ -67,7 +67,7 @@ long IndexBinaryFlat::remove_ids(const IDSelector& sel) {
       j++;
     }
   }
-  long nremove = ntotal - j;
+  int64_t nremove = ntotal - j;
   if (nremove > 0) {
     ntotal = j;
     xb.resize(ntotal * code_size);

@@ -22,7 +22,11 @@
 
 #include <sys/types.h>
 #include <sys/stat.h>
+#ifdef _MSC_VER
+#include "unistd.h"
+#else
 #include <unistd.h>
+#endif
 #include <stdint.h>
 
 #ifdef __SSE__
@@ -432,7 +436,11 @@ void IndexHNSW::init_level_0_from_knngraph(
 #pragma omp parallel for
     for (idx_t i = 0; i < ntotal; i++) {
         DistanceComputer *qdis = get_distance_computer();
+#ifdef _MSC_VER
+		float* vec = new float[d];
+#else
         float vec[d];
+#endif
         storage->reconstruct(i, vec);
         qdis->set_query(vec);
 
@@ -457,6 +465,9 @@ void IndexHNSW::init_level_0_from_knngraph(
             else
                 hnsw.neighbors[j] = -1;
         }
+#ifdef _MSC_VER
+		delete[] vec;
+#endif
     }
 }
 
@@ -477,7 +488,11 @@ void IndexHNSW::init_level_0_from_entry_points(
 
         DistanceComputer *dis = get_distance_computer();
         ScopeDeleter1<DistanceComputer> del(dis);
-        float vec[storage->d];
+#ifdef _MSC_VER
+		float *vec = new float[storage->d];
+#else
+		float vec[storage->d];
+#endif
 
 #pragma omp  for schedule(dynamic)
         for (int i = 0; i < n; i++) {
@@ -495,7 +510,10 @@ void IndexHNSW::init_level_0_from_entry_points(
                 fflush(stdout);
             }
         }
-    }
+#ifdef _MSC_VER
+		delete[] vec;
+#endif
+	}
     if (verbose) {
         printf("\n");
     }
@@ -710,7 +728,11 @@ void ReconstructFromNeighbors::reconstruct(storage_idx_t i, float *x, float *tmp
                 x[l] += w * tmp[l];
         }
     } else {
-        const float *betas[nsq];
+#ifdef _MSC_VER
+		const float **betas = new const float*[nsq];
+#else
+		const float *betas[nsq];
+#endif
         {
             const float *b = codebook.data();
             const uint8_t *c = &codes[i * code_size];
@@ -748,6 +770,9 @@ void ReconstructFromNeighbors::reconstruct(storage_idx_t i, float *x, float *tmp
                 d0 = d1;
             }
         }
+#ifdef _MSC_VER
+		delete[] betas;
+#endif
     }
 }
 
@@ -1326,8 +1351,8 @@ void IndexHNSW2Level::search (idx_t n, const float *x, idx_t k,
 
         int nprobe = index_ivfpq->nprobe;
 
-        long * coarse_assign = new long [n * nprobe];
-        ScopeDeleter<long> del (coarse_assign);
+		idx_t * coarse_assign = new idx_t[n * nprobe];
+        ScopeDeleter<idx_t> del (coarse_assign);
         float * coarse_dis = new float [n * nprobe];
         ScopeDeleter<float> del2 (coarse_dis);
 

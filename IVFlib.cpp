@@ -146,7 +146,7 @@ void search_and_return_centroids(faiss::Index *index,
             if (result_centroid_ids)
                 result_centroid_ids[i] = -1;
         } else {
-            long list_no = label >> 32;
+            long list_no = (int64_t)label >> 32;
             long list_index = label & 0xffffffff;
             if (result_centroid_ids)
                 result_centroid_ids[i] = list_no;

@@ -8,7 +8,7 @@
 // -*- c++ -*-
 
 /* Function for soft heap */
-
+#include <cstdint>
 #include "Heap.h"
 
 
@@ -19,7 +19,7 @@ template <typename C>
 void HeapArray<C>::heapify ()
 {
 #pragma omp parallel for
-    for (size_t j = 0; j < nh; j++)
+    for (int64_t j = 0; j < nh; j++)
         heap_heapify<C> (k, val + j * k, ids + j * k);
 }
 
@@ -27,18 +27,18 @@ template <typename C>
 void HeapArray<C>::reorder ()
 {
 #pragma omp parallel for
-    for (size_t j = 0; j < nh; j++)
+    for (int64_t j = 0; j < nh; j++)
         heap_reorder<C> (k, val + j * k, ids + j * k);
 }
 
 template <typename C>
 void HeapArray<C>::addn (size_t nj, const T *vin, TI j0,
-                         size_t i0, long ni)
+                         size_t i0, int64_t ni)
 {
     if (ni == -1) ni = nh;
     assert (i0 >= 0 && i0 + ni <= nh);
 #pragma omp parallel for
-    for (size_t i = i0; i < i0 + ni; i++) {
+    for (int64_t i = i0; i < i0 + ni; i++) {
         T * __restrict simi = get_val(i);
         TI * __restrict idxi = get_ids (i);
         const T *ip_line = vin + (i - i0) * nj;
@@ -56,7 +56,7 @@ void HeapArray<C>::addn (size_t nj, const T *vin, TI j0,
 template <typename C>
 void HeapArray<C>::addn_with_ids (
      size_t nj, const T *vin, const TI *id_in,
-     long id_stride, size_t i0, long ni)
+     int64_t id_stride, size_t i0, int64_t ni)
 {
     if (id_in == nullptr) {
         addn (nj, vin, 0, i0, ni);
@@ -65,7 +65,7 @@ void HeapArray<C>::addn_with_ids (
     if (ni == -1) ni = nh;
     assert (i0 >= 0 && i0 + ni <= nh);
 #pragma omp parallel for
-    for (size_t i = i0; i < i0 + ni; i++) {
+    for (int64_t i = i0; i < i0 + ni; i++) {
         T * __restrict simi = get_val(i);
         TI * __restrict idxi = get_ids (i);
         const T *ip_line = vin + (i - i0) * nj;
@@ -87,8 +87,8 @@ void HeapArray<C>::per_line_extrema (
                    TI * out_ids) const
 {
 #pragma omp parallel for
-    for (size_t j = 0; j < nh; j++) {
-        long imin = -1;
+    for (int64_t j = 0; j < nh; j++) {
+        int64_t imin = -1;
         typename C::T xval = C::Crev::neutral ();
         const typename C::T * x_ = val + j * k;
         for (size_t i = 0; i < k; i++)
@@ -113,10 +113,10 @@ void HeapArray<C>::per_line_extrema (
 
 // explicit instanciations
 
-template struct HeapArray<CMin <float, long> >;
-template struct HeapArray<CMax <float, long> >;
-template struct HeapArray<CMin <int, long> >;
-template struct HeapArray<CMax <int, long> >;
+template struct HeapArray<CMin <float, int64_t> >;
+template struct HeapArray<CMax <float, int64_t> >;
+template struct HeapArray<CMin <int, int64_t> >;
+template struct HeapArray<CMax <int, int64_t> >;
 
 
 }  // END namespace fasis

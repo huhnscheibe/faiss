@@ -17,8 +17,9 @@
 #include <faiss/AutoTune.h>
 #include <faiss/VectorTransform.h>
 #include <faiss/IVFlib.h>
-
-
+#ifdef _MSC_VER
+#include <faiss/drand48.h>
+#endif
 namespace {
 
 typedef faiss::Index::idx_t idx_t;

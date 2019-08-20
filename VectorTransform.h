@@ -288,13 +288,13 @@ struct IndexPreTransform: Index {
 
     void add(idx_t n, const float* x) override;
 
-    void add_with_ids(idx_t n, const float* x, const long* xids) override;
+    void add_with_ids(idx_t n, const float* x, const idx_t* xids) override;
 
     void reset() override;
 
     /** removes IDs from the index. Not supported by all indexes.
      */
-    long remove_ids(const IDSelector& sel) override;
+    int64_t remove_ids(const IDSelector& sel) override;
 
     void search(
         idx_t n,

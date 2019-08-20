@@ -92,7 +92,7 @@ void IndexFlat::compute_distance_subset (
 
 }
 
-long IndexFlat::remove_ids (const IDSelector & sel)
+int64_t IndexFlat::remove_ids (const IDSelector & sel)
 {
     idx_t j = 0;
     for (idx_t i = 0; i < ntotal; i++) {
@@ -105,7 +105,7 @@ long IndexFlat::remove_ids (const IDSelector & sel)
             j++;
         }
     }
-    long nremove = ntotal - j;
+    int64_t nremove = ntotal - j;
     if (nremove > 0) {
         ntotal = j;
         xb.resize (ntotal * d);

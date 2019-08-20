@@ -82,7 +82,7 @@ void IndexPQ::add (idx_t n, const float *x)
 }
 
 
-long IndexPQ::remove_ids (const IDSelector & sel)
+int64_t IndexPQ::remove_ids (const IDSelector & sel)
 {
     idx_t j = 0;
     for (idx_t i = 0; i < ntotal; i++) {
@@ -95,7 +95,7 @@ long IndexPQ::remove_ids (const IDSelector & sel)
             j++;
         }
     }
-    long nremove = ntotal - j;
+    int64_t nremove = ntotal - j;
     if (nremove > 0) {
         ntotal = j;
         codes.resize (ntotal * pq.code_size);
@@ -237,7 +237,7 @@ template <class HammingComputer>
 static size_t polysemous_inner_loop (
         const IndexPQ & index,
         const float *dis_table_qi, const uint8_t *q_code,
-        size_t k, float *heap_dis, long *heap_ids)
+        size_t k, float *heap_dis, int64_t *heap_ids)
 {
 
     int M = index.pq.M;
@@ -252,7 +252,7 @@ static size_t polysemous_inner_loop (
 
     HammingComputer hc (q_code, code_size);
 
-    for (long bi = 0; bi < ntotal; bi++) {
+    for (int64_t bi = 0; bi < ntotal; bi++) {
         int hd = hc.hamming (b_code);
 
         if (hd < ht) {
@@ -309,7 +309,7 @@ void IndexPQ::search_core_polysemous (idx_t n, const float *x, idx_t k,
 
         const float * dis_table_qi = dis_tables + qi * pq.M * pq.ksub;
 
-        long * heap_ids = labels + qi * k;
+		idx_t * heap_ids = labels + qi * k;
         float *heap_dis = distances + qi * k;
         maxheap_heapify (k, heap_dis, heap_ids);
 
@@ -410,7 +410,7 @@ void IndexPQ::hamming_distance_table (idx_t n, const float *x,
 
 void IndexPQ::hamming_distance_histogram (idx_t n, const float *x,
                                           idx_t nb, const float *xb,
-                                          long *hist)
+										  int64_t *hist)
 {
     FAISS_THROW_IF_NOT (metric_type == METRIC_L2);
     FAISS_THROW_IF_NOT (pq.code_size % 8 == 0);
@@ -438,11 +438,11 @@ void IndexPQ::hamming_distance_histogram (idx_t n, const float *x,
 
 #pragma omp parallel
     {
-        std::vector<long> histi (nbits + 1);
+        std::vector<int64_t> histi (nbits + 1);
         hamdis_t *distances = new hamdis_t [nb * bs];
         ScopeDeleter<hamdis_t> del (distances);
 #pragma omp for
-        for (size_t q0 = 0; q0 < n; q0 += bs) {
+        for (int64_t q0 = 0; q0 < n; q0 += bs) {
             // printf ("dis stats: %ld/%ld\n", q0, n);
             size_t q1 = q0 + bs;
             if (q1 > n) q1 = n;
@@ -701,10 +701,10 @@ struct MinSumK {
      * We use a heap to maintain a queue of sums, with the associated
      * terms involved in the sum.
      */
-    typedef CMin<T, long> HC;
+    typedef CMin<T, int64_t> HC;
     size_t heap_capacity, heap_size;
     T *bh_val;
-    long *bh_ids;
+	int64_t *bh_ids;
 
     std::vector <SSA> ssx;
 
@@ -721,10 +721,10 @@ struct MinSumK {
 
         // we'll do k steps, each step pushes at most M vals
         bh_val = new T[heap_capacity];
-        bh_ids = new long[heap_capacity];
+        bh_ids = new int64_t[heap_capacity];
 
         if (use_seen) {
-            long n_ids = weight(M);
+			int64_t n_ids = weight(M);
             seen.resize ((n_ids + 7) / 8);
         }
 
@@ -733,21 +733,21 @@ struct MinSumK {
 
     }
 
-    long weight (int i) {
+    int64_t weight (int i) {
         return 1 << (i * nbit);
     }
 
-    bool is_seen (long i) {
+    bool is_seen (int64_t i) {
         return (seen[i >> 3] >> (i & 7)) & 1;
     }
 
-    void mark_seen (long i) {
+    void mark_seen (int64_t i) {
         if (use_seen)
             seen [i >> 3] |= 1 << (i & 7);
     }
 
-    void run (const T *x, long ldx,
-              T * sums, long * terms) {
+    void run (const T *x, int64_t ldx,
+              T * sums, int64_t * terms) {
         heap_size = 0;
 
         for (int m = 0; m < M; m++) {
@@ -781,7 +781,7 @@ struct MinSumK {
             assert (heap_size > 0);
 
             T sum = sums[k] = bh_val[0];
-            long ti = terms[k] = bh_ids[0];
+            int64_t ti = terms[k] = bh_ids[0];
 
             if (use_seen) {
                 mark_seen (ti);
@@ -793,9 +793,9 @@ struct MinSumK {
             }
 
             // enqueue followers
-            long ii = ti;
+            int64_t ii = ti;
             for (int m = 0; m < M; m++) {
-                long n = ii & ((1L << nbit) - 1);
+                int64_t n = ii & ((1L << nbit) - 1);
                 ii >>= nbit;
                 if (n + 1 >= N) continue;
 
@@ -811,15 +811,15 @@ struct MinSumK {
 
         // convert indices by applying permutation
         for (int k = 0; k < K; k++) {
-            long ii = terms[k];
+            int64_t ii = terms[k];
             if (use_seen) {
                 // clear seen for reuse at next loop
                 seen[ii >> 3] = 0;
             }
-            long ti = 0;
+            int64_t ti = 0;
             for (int m = 0; m < M; m++) {
-                long n = ii & ((1L << nbit) - 1);
-                ti += long(ssx[m].get_ord(n)) << (nbit * m);
+                int64_t n = ii & ((1L << nbit) - 1);
+                ti += int64_t(ssx[m].get_ord(n)) << (nbit * m);
                 ii >>= nbit;
             }
             terms[k] = ti;
@@ -827,9 +827,9 @@ struct MinSumK {
     }
 
 
-    void enqueue_follower (long ti, int m, int n, T sum) {
+    void enqueue_follower (int64_t ti, int m, int n, T sum) {
         T next_sum = sum + ssx[m].get_diff(n + 1);
-        long next_ti = ti + weight(m);
+        int64_t next_ti = ti + weight(m);
         heap_push<HC> (++heap_size, bh_val, bh_ids, next_sum, next_ti);
     }
 
@@ -940,9 +940,9 @@ void MultiIndexQuantizer::search (idx_t n, const float *x, idx_t k,
 void MultiIndexQuantizer::reconstruct (idx_t key, float * recons) const
 {
 
-    long jj = key;
+    int64_t jj = key;
     for (int m = 0; m < pq.M; m++) {
-        long n = jj & ((1L << pq.nbits) - 1);
+        int64_t n = jj & ((1L << pq.nbits) - 1);
         jj >>= pq.nbits;
         memcpy(recons, pq.get_centroids(m, n), sizeof(recons[0]) * pq.dsub);
         recons += pq.dsub;
@@ -1024,10 +1024,10 @@ void MultiIndexQuantizer2::search(
 
     if (n == 0) return;
 
-    int k2 = std::min(K, long(pq.ksub));
+    int k2 = std::min(K, int64_t(pq.ksub));
 
-    long M = pq.M;
-    long dsub = pq.dsub, ksub = pq.ksub;
+    int64_t M = pq.M;
+    int64_t dsub = pq.dsub, ksub = pq.ksub;
 
     // size (M, n, k2)
     std::vector<idx_t> sub_ids(n * M * k2);
@@ -1082,16 +1082,16 @@ void MultiIndexQuantizer2::search(
                 // remap ids
 
                 const idx_t *idmap0 = sub_ids.data() + i * k2;
-                long ld_idmap = k2 * n;
-                long mask1 = ksub - 1L;
+                int64_t ld_idmap = k2 * n;
+                int64_t mask1 = ksub - 1L;
 
                 for (int k = 0; k < K; k++) {
                     const idx_t *idmap = idmap0;
-                    long vin = li[k];
-                    long vout = 0;
+                    int64_t vin = li[k];
+                    int64_t vout = 0;
                     int bs = 0;
                     for (int m = 0; m < M; m++) {
-                        long s = vin & mask1;
+                        int64_t s = vin & mask1;
                         vin >>= pq.nbits;
                         vout |= idmap[s] << bs;
                         bs += pq.nbits;

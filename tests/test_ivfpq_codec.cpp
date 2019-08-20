@@ -24,7 +24,7 @@ int d = 64;
 size_t nb = 8000;
 
 
-double eval_codec_error (long ncentroids, long m, const std::vector<float> &v)
+double eval_codec_error (int64_t ncentroids, int64_t m, const std::vector<float> &v)
 {
     faiss::IndexFlatL2 coarse_quantizer (d);
     faiss::IndexIVFPQ index (&coarse_quantizer, d,
@@ -34,7 +34,7 @@ double eval_codec_error (long ncentroids, long m, const std::vector<float> &v)
 
     // encode and decode to compute reconstruction error
 
-    std::vector<long> keys (nb);
+    std::vector<int64_t> keys (nb);
     std::vector<uint8_t> codes (nb * m);
     index.encode_multiple (nb, keys.data(), v.data(), codes.data(), true);
 

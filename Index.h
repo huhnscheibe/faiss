@@ -59,7 +59,7 @@ struct RangeSearchResult;
  * database-to-database queries are not implemented.
  */
 struct Index {
-    using idx_t = long;    ///< all indices are this type
+    using idx_t = int64_t;    ///< all indices are this type
     using component_t = float;
     using distance_t = float;
 
@@ -106,7 +106,7 @@ struct Index {
      *
      * @param xids if non-null, ids to store for the vectors (size n)
      */
-    virtual void add_with_ids (idx_t n, const float * x, const long *xids);
+    virtual void add_with_ids (idx_t n, const float * x, const idx_t *xids);
 
     /** query n vectors of dimension d to the index.
      *
@@ -146,7 +146,7 @@ struct Index {
 
     /** removes IDs from the index. Not supported by all indexes
      */
-    virtual long remove_ids (const IDSelector & sel);
+    virtual int64_t remove_ids (const IDSelector & sel);
 
     /** Reconstruct a stored vector (or an approximation if lossy coding)
      *

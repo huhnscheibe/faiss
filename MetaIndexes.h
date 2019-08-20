@@ -22,13 +22,13 @@ namespace faiss {
 struct IndexIDMap : Index {
     Index * index;            ///! the sub-index
     bool own_fields;          ///! whether pointers are deleted in destructo
-    std::vector<long> id_map;
+    std::vector<idx_t> id_map;
 
     explicit IndexIDMap (Index *index);
 
     /// Same as add_core, but stores xids instead of sequential ids
     /// @param xids if non-null, ids to store for the vectors (size n)
-    void add_with_ids(idx_t n, const float* x, const long* xids) override;
+    void add_with_ids(idx_t n, const float* x, const idx_t* xids) override;
 
     /// this will fail. Use add_with_ids
     void add(idx_t n, const float* x) override;
@@ -45,7 +45,7 @@ struct IndexIDMap : Index {
     void reset() override;
 
     /// remove ids adapted to IndexFlat
-    long remove_ids(const IDSelector& sel) override;
+    int64_t remove_ids(const IDSelector& sel) override;
 
     void range_search (idx_t n, const float *x, float radius,
                        RangeSearchResult *result) const override;
@@ -65,9 +65,9 @@ struct IndexIDMap2 : IndexIDMap {
     /// make the rev_map from scratch
     void construct_rev_map ();
 
-    void add_with_ids(idx_t n, const float* x, const long* xids) override;
+    void add_with_ids(idx_t n, const float* x, const idx_t* xids) override;
 
-    long remove_ids(const IDSelector& sel) override;
+    int64_t remove_ids(const IDSelector& sel) override;
 
     void reconstruct (idx_t key, float * recons) const override;
 

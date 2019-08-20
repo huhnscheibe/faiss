@@ -17,7 +17,9 @@
 #include <faiss/AutoTune.h>
 #include <faiss/index_io.h>
 #include <faiss/IVFlib.h>
-
+#ifdef _MSC_VER
+#include <faiss/drand48.h>
+#endif
 using namespace faiss;
 
 typedef Index::idx_t idx_t;
@@ -90,7 +92,7 @@ void make_index_slices (const Index* trained_index,
         Index * index = sub_indexes.back().get();
 
         auto xb = make_data(nb * d);
-        std::vector<long> ids (nb);
+        std::vector<faiss::Index::idx_t> ids (nb);
         for (int j = 0; j < nb; j++) {
             ids[j] = lrand48();
         }

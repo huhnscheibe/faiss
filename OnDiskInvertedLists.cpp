@@ -14,7 +14,12 @@
 #include <unordered_set>
 
 #include <sys/mman.h>
+#ifdef _MSC_VER
+#include <Windows.h>
+#include "unistd.h"
+#else
 #include <unistd.h>
+#endif
 #include <sys/types.h>
 
 #include "FaissAssert.h"
@@ -322,7 +327,15 @@ void OnDiskInvertedLists::update_totsize (size_t new_size)
     // create file
     printf ("resizing %s to %ld bytes\n", filename.c_str(), totsize);
 
+#ifdef _MSC_VER
+	HANDLE hFile = CreateFile(filename.c_str(), GENERIC_WRITE, 0, NULL, OPEN_EXISTING, 0, 0);
+	SetFilePointer(hFile, totsize, 0, FILE_BEGIN); // delete the last 5 bytes
+	SetEndOfFile(hFile);
+	CloseHandle(hFile);
+	int err = 0;
+#else
     int err = truncate (filename.c_str(), totsize);
+#endif
 
     FAISS_THROW_IF_NOT_FMT (err == 0, "truncate %s to %ld: %s",
                             filename.c_str(), totsize,
@@ -548,7 +561,7 @@ void OnDiskInvertedLists::free_slot (size_t offset, size_t capacity) {
         it++;
     }
 
-    size_t inf = 1UL << 60;
+    size_t inf = 1LL << 60;
 
     size_t end_prev = inf;
     if (it != slots.begin()) {
@@ -623,7 +636,7 @@ size_t OnDiskInvertedLists::merge_from (const InvertedLists **ils, int n_il,
     double t0 = getmillisecs(), last_t = t0;
 
 #pragma omp parallel for
-    for (size_t j = 0; j < nlist; j++) {
+    for (int64_t j = 0; j < nlist; j++) {
         List & l = lists[j];
         for (int i = 0; i < n_il; i++) {
             const InvertedLists *il = ils[i];

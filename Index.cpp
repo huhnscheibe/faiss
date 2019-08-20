@@ -41,11 +41,11 @@ void Index::assign (idx_t n, const float * x, idx_t * labels, idx_t k)
 void Index::add_with_ids(
     idx_t /*n*/,
     const float* /*x*/,
-    const long* /*xids*/) {
+    const idx_t* /*xids*/) {
   FAISS_THROW_MSG ("add_with_ids not implemented for this type of index");
 }
 
-long Index::remove_ids(const IDSelector& /*sel*/) {
+int64_t Index::remove_ids(const IDSelector& /*sel*/) {
   FAISS_THROW_MSG ("remove_ids not implemented for this type of index");
   return -1;
 }

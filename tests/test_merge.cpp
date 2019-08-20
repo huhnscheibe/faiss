@@ -18,7 +18,10 @@
 #include <faiss/VectorTransform.h>
 #include <faiss/OnDiskInvertedLists.h>
 #include <faiss/IVFlib.h>
-
+#include <pthread.h>
+#ifdef _MSC_VER
+#include <faiss/unistd.h>
+#endif
 
 namespace {
 

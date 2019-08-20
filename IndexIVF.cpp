@@ -146,7 +146,7 @@ void IndexIVF::add (idx_t n, const float * x)
 }
 
 
-void IndexIVF::add_with_ids (idx_t n, const float * x, const long *xids)
+void IndexIVF::add_with_ids (idx_t n, const float * x, const idx_t *xids)
 {
     // do some blocking to avoid excessive allocs
     idx_t bs = 65536;
@@ -181,9 +181,9 @@ void IndexIVF::add_with_ids (idx_t n, const float * x, const long *xids)
 
         // each thread takes care of a subset of lists
         for (size_t i = 0; i < n; i++) {
-            long list_no = idx [i];
+            idx_t list_no = idx [i];
             if (list_no >= 0 && list_no % nt == rank) {
-                long id = xids ? xids[i] : ntotal + i;
+                idx_t id = xids ? xids[i] : ntotal + i;
                 invlists->add_entry (list_no, id,
                                      flat_codes.get() + i * code_size);
                 nadd++;
@@ -211,7 +211,7 @@ void IndexIVF::make_direct_map (bool new_maintain_direct_map)
             size_t list_size = invlists->list_size (key);
             ScopedIds idlist (invlists, key);
 
-            for (long ofs = 0; ofs < list_size; ofs++) {
+            for (idx_t ofs = 0; ofs < list_size; ofs++) {
                 FAISS_THROW_IF_NOT_MSG (
                        0 <= idlist [ofs] && idlist[ofs] < ntotal,
                        "direct map supported only for seuquential ids");
@@ -228,8 +228,8 @@ void IndexIVF::make_direct_map (bool new_maintain_direct_map)
 void IndexIVF::search (idx_t n, const float *x, idx_t k,
                          float *distances, idx_t *labels) const
 {
-    long * idx = new long [n * nprobe];
-    ScopeDeleter<long> del (idx);
+	idx_t * idx = new idx_t [n * nprobe];
+    ScopeDeleter<idx_t> del (idx);
     float * coarse_dis = new float [n * nprobe];
     ScopeDeleter<float> del2 (coarse_dis);
 
@@ -254,8 +254,8 @@ void IndexIVF::search_preassigned (idx_t n, const float *x, idx_t k,
                                    bool store_pairs,
                                    const IVFSearchParameters *params) const
 {
-    long nprobe = params ? params->nprobe : this->nprobe;
-    long max_codes = params ? params->max_codes : this->max_codes;
+    idx_t nprobe = params ? params->nprobe : this->nprobe;
+    idx_t max_codes = params ? params->max_codes : this->max_codes;
 
     size_t nlistv = 0, ndis = 0, nheap = 0;
 
@@ -344,7 +344,7 @@ void IndexIVF::search_preassigned (idx_t n, const float *x, idx_t k,
             if (parallel_mode == 0) {
 
 #pragma omp for
-                for (size_t i = i0; i < i1; i++) {
+                for (int64_t i = i0; i < i1; i++) {
                     // loop over queries
                     scanner->set_query (x + i * d);
                     float * simi = distances + i * k;
@@ -352,7 +352,7 @@ void IndexIVF::search_preassigned (idx_t n, const float *x, idx_t k,
 
                     init_result (simi, idxi);
 
-                    long nscan = 0;
+                    idx_t nscan = 0;
 
                     // loop over probes
                     for (size_t ik = 0; ik < nprobe; ik++) {
@@ -380,7 +380,7 @@ void IndexIVF::search_preassigned (idx_t n, const float *x, idx_t k,
                     init_result (local_dis.data(), local_idx.data());
 
 #pragma omp for schedule(dynamic)
-                    for (size_t ik = 0; ik < nprobe; ik++) {
+                    for (int64_t ik = 0; ik < nprobe; ik++) {
                         ndis += scan_one_list (
                             keys [i * nprobe + ik],
                             coarse_dis[i * nprobe + ik],
@@ -496,7 +496,7 @@ void IndexIVF::range_search_preassigned (
         if (parallel_mode == 0) {
 
 #pragma omp for
-            for (size_t i = 0; i < nx; i++) {
+            for (int64_t i = 0; i < nx; i++) {
                 scanner->set_query (x + i * d);
 
                 RangeQueryResult & qres = pres.new_result (i);
@@ -515,7 +515,7 @@ void IndexIVF::range_search_preassigned (
                 RangeQueryResult & qres = pres.new_result (i);
 
 #pragma omp for schedule(dynamic)
-                for (size_t ik = 0; ik < nprobe; ik++) {
+                for (int64_t ik = 0; ik < nprobe; ik++) {
                     scan_list_func (i, ik, qres);
                 }
             }
@@ -524,7 +524,7 @@ void IndexIVF::range_search_preassigned (
             RangeQueryResult *qres = nullptr;
 
 #pragma omp for schedule(dynamic)
-            for (size_t iik = 0; iik < nx * nprobe; iik++) {
+            for (int64_t iik = 0; iik < nx * nprobe; iik++) {
                 size_t i = iik / nprobe;
                 size_t ik = iik % nprobe;
                 if (qres == nullptr || qres->qno != i) {
@@ -645,7 +645,7 @@ void IndexIVF::reset ()
 }
 
 
-Index::idx_t IndexIVF::remove_ids (const IDSelector & sel)
+int64_t IndexIVF::remove_ids (const IDSelector & sel)
 {
     FAISS_THROW_IF_NOT_MSG (!maintain_direct_map,
                     "direct map remove not implemented");

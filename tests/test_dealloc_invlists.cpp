@@ -17,6 +17,7 @@
 #include <faiss/AutoTune.h>
 #include <faiss/index_io.h>
 #include <faiss/IVFlib.h>
+#include <faiss/drand48.h>
 
 using namespace faiss;
 

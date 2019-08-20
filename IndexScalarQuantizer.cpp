@@ -733,7 +733,7 @@ void train_NonUniform(RangeStat rs, float rs_arg,
         }
         std::vector<float> trained_d(2);
 #pragma omp parallel for
-        for (size_t j = 0; j < d; j++) {
+        for (int64_t j = 0; j < d; j++) {
             train_Uniform(rs, rs_arg,
                           n, k, xt.data() + j * n,
                           trained_d);
@@ -1283,7 +1283,7 @@ void ScalarQuantizer::compute_codes (const float * x,
     ScopeDeleter1<Quantizer> del(squant);
     memset (codes, 0, code_size * n);
 #pragma omp parallel for
-    for (size_t i = 0; i < n; i++)
+    for (int64_t i = 0; i < n; i++)
         squant->encode_vector (x + i * d, codes + i * code_size);
 }
 
@@ -1292,7 +1292,7 @@ void ScalarQuantizer::decode (const uint8_t *codes, float *x, size_t n) const
     Quantizer *squant = select_quantizer (*this);
     ScopeDeleter1<Quantizer> del(squant);
 #pragma omp parallel for
-    for (size_t i = 0; i < n; i++)
+    for (int64_t i = 0; i < n; i++)
         squant->decode_vector (codes + i * code_size, x + i * d);
 }
 
@@ -1379,7 +1379,7 @@ struct IVFSQScannerIP: InvertedListScanner {
 
             if (accu > simi [0]) {
                 minheap_pop (k, simi, idxi);
-                long id = store_pairs ? (list_no << 32 | j) : ids[j];
+                idx_t id = store_pairs ? (list_no << 32 | j) : ids[j];
                 minheap_push (k, simi, idxi, accu, id);
                 nup++;
             }
@@ -1397,7 +1397,7 @@ struct IVFSQScannerIP: InvertedListScanner {
         for (size_t j = 0; j < list_size; j++) {
             float accu = accu0 + dc.query_to_code (codes);
             if (accu > radius) {
-                long id = store_pairs ? (list_no << 32 | j) : ids[j];
+                idx_t id = store_pairs ? (list_no << 32 | j) : ids[j];
                 res.add (accu, id);
             }
             codes += code_size;
@@ -1467,7 +1467,7 @@ struct IVFSQScannerL2: InvertedListScanner {
 
             if (dis < simi [0]) {
                 maxheap_pop (k, simi, idxi);
-                long id = store_pairs ? (list_no << 32 | j) : ids[j];
+                idx_t id = store_pairs ? (list_no << 32 | j) : ids[j];
                 maxheap_push (k, simi, idxi, dis, id);
                 nup++;
             }
@@ -1485,7 +1485,7 @@ struct IVFSQScannerL2: InvertedListScanner {
         for (size_t j = 0; j < list_size; j++) {
             float dis = dc.query_to_code (codes);
             if (dis < radius) {
-                long id = store_pairs ? (list_no << 32 | j) : ids[j];
+                idx_t id = store_pairs ? (list_no << 32 | j) : ids[j];
                 res.add (dis, id);
             }
             codes += code_size;
@@ -1653,7 +1653,7 @@ void IndexScalarQuantizer::search(
         ScopeDeleter1<InvertedListScanner> del(scanner);
 
 #pragma omp for
-        for (size_t i = 0; i < n; i++) {
+        for (int64_t i = 0; i < n; i++) {
             float * D = distances + k * i;
             idx_t * I = labels + k * i;
             // re-order heap
@@ -1744,8 +1744,8 @@ void IndexIVFScalarQuantizer::train_residual (idx_t n, const float *x)
     ScopeDeleter<float> del_x (x_in == x ? nullptr : x);
 
     if (by_residual) {
-        long * idx = new long [n];
-        ScopeDeleter<long> del (idx);
+        idx_t * idx = new idx_t[n];
+        ScopeDeleter<idx_t> del (idx);
         quantizer->assign (n, x, idx);
         float *residuals = new float [n * d];
         ScopeDeleter<float> del2 (residuals);
@@ -1775,8 +1775,8 @@ void IndexIVFScalarQuantizer::encode_vectors(idx_t n, const float* x,
 
         // each thread takes care of a subset of lists
 #pragma omp for
-        for (size_t i = 0; i < n; i++) {
-            long list_no = list_nos [i];
+        for (int64_t i = 0; i < n; i++) {
+            idx_t list_no = list_nos [i];
             if (list_no >= 0) {
                 const float *xi = x + i * d;
                 if (by_residual) {
@@ -1793,11 +1793,11 @@ void IndexIVFScalarQuantizer::encode_vectors(idx_t n, const float* x,
 
 
 void IndexIVFScalarQuantizer::add_with_ids
-       (idx_t n, const float * x, const long *xids)
+       (idx_t n, const float * x, const idx_t *xids)
 {
     FAISS_THROW_IF_NOT (is_trained);
-    long * idx = new long [n];
-    ScopeDeleter<long> del (idx);
+    idx_t * idx = new idx_t [n];
+    ScopeDeleter<idx_t> del (idx);
     quantizer->assign (n, x, idx);
     size_t nadd = 0;
     Quantizer *squant = select_quantizer (sq);
@@ -1812,9 +1812,9 @@ void IndexIVFScalarQuantizer::add_with_ids
 
         // each thread takes care of a subset of lists
         for (size_t i = 0; i < n; i++) {
-            long list_no = idx [i];
+            idx_t list_no = idx [i];
             if (list_no >= 0 && list_no % nt == rank) {
-                long id = xids ? xids[i] : ntotal + i;
+                idx_t id = xids ? xids[i] : ntotal + i;
 
                 const float * xi = x + i * d;
                 if (by_residual) {
@@ -1847,8 +1847,8 @@ InvertedListScanner* IndexIVFScalarQuantizer::get_InvertedListScanner
 }
 
 
-void IndexIVFScalarQuantizer::reconstruct_from_offset (long list_no,
-                                                       long offset,
+void IndexIVFScalarQuantizer::reconstruct_from_offset (idx_t list_no,
+                                                       idx_t offset,
                                                        float* recons) const
 {
     std::vector<float> centroid(d);

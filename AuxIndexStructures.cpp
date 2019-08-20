@@ -6,13 +6,11 @@
  */
 
 // -*- c++ -*-
-
 #include <cstring>
-
+#include <algorithm>
 #include "AuxIndexStructures.h"
 
 #include "FaissAssert.h"
-
 
 namespace faiss {
 
@@ -275,7 +273,6 @@ int IOWriter::fileno ()
     FAISS_THROW_MSG ("IOWriter does not support memory mapping");
 }
 
-
 size_t VectorIOWriter::operator()(
                 const void *ptr, size_t size, size_t nitems)
 {
@@ -319,7 +316,6 @@ bool InterruptCallback::is_interrupted () {
     }
     return instance->want_interrupt();
 }
-
 
 size_t InterruptCallback::get_period_hint (size_t flops) {
     if (!instance.get()) {
