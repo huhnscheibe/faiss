@@ -18,7 +18,9 @@
 ///
 /// Assertions
 ///
+#ifdef _MSC_VER
 #define __PRETTY_FUNCTION__ __FUNCSIG__
+#endif
 #define FAISS_ASSERT(X)                                                 \
   do {                                                                  \
     if (! (X)) {                                                        \
