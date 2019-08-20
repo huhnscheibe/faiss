@@ -13,7 +13,9 @@
 #include <vector>
 
 #include "Index.h"
-
+#ifdef _MSC_VER
+#include "drand48.h"
+#endif
 
 namespace faiss {
 
@@ -61,7 +63,7 @@ struct IndexFlat: Index {
     /** remove some ids. NB that Because of the structure of the
      * indexing structre, the semantics of this operation are
      * different from the usual ones: the new ids are shifted */
-    long remove_ids(const IDSelector& sel) override;
+    int64_t remove_ids(const IDSelector& sel) override;
 
     IndexFlat () {}
 };

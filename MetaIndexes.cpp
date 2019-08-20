@@ -61,7 +61,7 @@ void IndexIDMap::reset ()
 }
 
 
-void IndexIDMap::add_with_ids (idx_t n, const float * x, const long *xids)
+void IndexIDMap::add_with_ids (idx_t n, const float * x, const idx_t *xids)
 {
     index->add (n, x);
     for (idx_t i = 0; i < n; i++)
@@ -96,9 +96,9 @@ void IndexIDMap::range_search (idx_t n, const float *x, float radius,
 namespace {
 
 struct IDTranslatedSelector: IDSelector {
-    const std::vector <long> & id_map;
+    const std::vector <idx_t> & id_map;
     const IDSelector & sel;
-    IDTranslatedSelector (const std::vector <long> & id_map,
+    IDTranslatedSelector (const std::vector <idx_t> & id_map,
                           const IDSelector & sel):
         id_map (id_map), sel (sel)
     {}
@@ -109,13 +109,13 @@ struct IDTranslatedSelector: IDSelector {
 
 }
 
-long IndexIDMap::remove_ids (const IDSelector & sel)
+int64_t IndexIDMap::remove_ids (const IDSelector & sel)
 {
     // remove in sub-index first
     IDTranslatedSelector sel2 (id_map, sel);
-    long nremove = index->remove_ids (sel2);
+    idx_t nremove = index->remove_ids (sel2);
 
-    long j = 0;
+    int64_t j = 0;
     for (idx_t i = 0; i < ntotal; i++) {
         if (sel.is_member (id_map[i])) {
             // remove
@@ -145,7 +145,7 @@ IndexIDMap::~IndexIDMap ()
 IndexIDMap2::IndexIDMap2 (Index *index): IndexIDMap (index)
 {}
 
-void IndexIDMap2::add_with_ids(idx_t n, const float* x, const long* xids)
+void IndexIDMap2::add_with_ids(idx_t n, const float* x, const idx_t* xids)
 {
     size_t prev_ntotal = ntotal;
     IndexIDMap::add_with_ids (n, x, xids);
@@ -163,10 +163,10 @@ void IndexIDMap2::construct_rev_map ()
 }
 
 
-long IndexIDMap2::remove_ids(const IDSelector& sel)
+int64_t IndexIDMap2::remove_ids(const IDSelector& sel)
 {
     // This is quite inefficient
-    long nremove = IndexIDMap::remove_ids (sel);
+	int64_t nremove = IndexIDMap::remove_ids (sel);
     construct_rev_map ();
     return nremove;
 }
@@ -230,7 +230,7 @@ void IndexSplitVectors::search (
     FAISS_THROW_IF_NOT_MSG (sum_d == d,
                       "not enough indexes compared to # dimensions");
 
-    long nshard = sub_indexes.size();
+    idx_t nshard = sub_indexes.size();
     float *all_distances = new float [nshard * k * n];
     idx_t *all_labels = new idx_t [nshard * k * n];
     ScopeDeleter<float> del (all_distances);
@@ -244,7 +244,7 @@ void IndexSplitVectors::search (
         if (index->verbose)
             printf ("begin query shard %d on %ld points\n", no, n);
         const Index * sub_index = index->sub_indexes[no];
-        long sub_d = sub_index->d, d = index->d;
+        idx_t sub_d = sub_index->d, d = index->d;
         idx_t ofs = 0;
         for (int i = 0; i < no; i++) ofs += index->sub_indexes[i]->d;
         float *sub_x = new float [sub_d * n];
@@ -276,18 +276,19 @@ void IndexSplitVectors::search (
         }
     }
 
-    long factor = 1;
+    idx_t factor = 1;
     for (int i = 0; i < nshard; i++) {
         if (i > 0) { // results of 0 are already in the table
             const float *distances_i = all_distances + i * k * n;
             const idx_t *labels_i = all_labels + i * k * n;
-            for (long j = 0; j < n; j++) {
+            for (idx_t j = 0; j < n; j++) {
                 if (labels[j] >= 0 && labels_i[j] >= 0) {
                     labels[j] += labels_i[j] * factor;
                     distances[j] += distances_i[j];
                 } else {
                     labels[j] = -1;
-                    distances[j] = 0.0 / 0.0;
+					float zero = 0.0;
+                    distances[j] = 0.0 / zero;
                 }
             }
         }

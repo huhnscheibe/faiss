@@ -35,8 +35,13 @@
    excludes most unsigned type */
 typedef int32_t hamdis_t;
 
-namespace faiss {
+#ifdef _MSC_VER
+#  include <intrin.h>
+#  define __builtin_popcount __popcnt
+#  define __builtin_popcountl __popcnt64
+#endif
 
+namespace faiss {
 
 extern size_t hamming_batch_size;
 
@@ -125,7 +130,7 @@ void hammings_knn_mc (
   size_t k,
   size_t ncodes,
   int32_t *distances,
-  long *labels);
+  int64_t *labels);
 
 /* Counting the number of matches or of cross-matches (without returning them)
    For use with function that assume pre-allocated memory */
@@ -147,7 +152,7 @@ size_t match_hamming_thres (
         size_t n2,
         hamdis_t ht,
         size_t ncodes,
-        long * idx,
+	    int64_t * idx,
         hamdis_t * dis);
 
 /* Cross-matching in a set of vectors */
@@ -529,7 +534,7 @@ void generalized_hammings_knn_hc (
 template<class HammingComputer>
 struct HCounterState {
   int *counters;
-  long *ids_per_dis;
+  int64_t *ids_per_dis;
 
   HammingComputer hc;
   int thres;
@@ -537,7 +542,7 @@ struct HCounterState {
   int count_eq;
   int k;
 
- HCounterState(int *counters, long *ids_per_dis,
+ HCounterState(int *counters, int64_t *ids_per_dis,
                const uint8_t *x, int d, int k)
  : counters(counters),
         ids_per_dis(ids_per_dis),
