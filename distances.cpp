@@ -241,11 +241,10 @@ void pairwise_extra_distances (
     if (ldq == -1) ldq = d;
     if (ldb == -1) ldb = d;
     if (ldd == -1) ldd = nb;
-
     switch(mt) {
 #define HANDLE_VAR(kw)                                          \
      case METRIC_ ## kw: {                                      \
-        VectorDistance ## kw vd({(size_t)d});                   \
+        VectorDistance ## kw vd = {(size_t)d};                  \
         pairwise_extra_distances_template (vd, nq, xq, nb, xb,  \
                                            dis, ldq, ldb, ldd); \
         break;                                                  \
@@ -280,7 +279,7 @@ void knn_extra_metrics (
     switch(mt) {
 #define HANDLE_VAR(kw)                                          \
      case METRIC_ ## kw: {                                      \
-        VectorDistance ## kw vd({(size_t)d});                   \
+        VectorDistance ## kw vd = {(size_t)d};                  \
         knn_extra_metrics_template (vd, x, y, nx, ny, res);     \
         break;                                                  \
     }
@@ -311,7 +310,7 @@ DistanceComputer *get_extra_distance_computer (
     switch(mt) {
 #define HANDLE_VAR(kw)                                                  \
      case METRIC_ ## kw: {                                              \
-        VectorDistance ## kw vd({(size_t)d});                           \
+        VectorDistance ## kw vd = {(size_t)d};                          \
         return new ExtraDistanceComputer<VectorDistance ## kw>(vd, xb, nb); \
     }
         HANDLE_VAR(L2);
